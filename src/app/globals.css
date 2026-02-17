@@ -7,6 +7,16 @@
   --foreground: #171717;
 }
 
+@font-face {
+  font-family: 'InterBlack';
+  src: url('/fonts/Inter-Black.otf') format('truetype');
+}
+
+@font-face {
+  font-family: 'InterBold';
+  src: url('/fonts/Inter-Bold.otf') format('truetype');
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -24,4 +34,61 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+.interblack {
+  font-family: 'InterBlack';
+}
+
+.interbold {
+  font-family: 'InterBold';
+}
+
+.flip-perspective {
+  perspective: 1000px;
+}
+
+@keyframes rollDown3D {
+  0% {
+    transform: translateY(-120%) rotateX(90deg);
+    opacity: 0;
+  }
+  50% {
+    transform: translateY(10%) rotateX(-15deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-5%) rotateX(8deg);
+  }
+  100% {
+    transform: translateY(0%) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+.roll-down-3d {
+  transform-origin: top center;
+  backface-visibility: hidden;
+  animation: rollDown3D 1000ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes dotPop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.dot-pop {
+  animation-name: dotPop;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
 }
