@@ -628,7 +628,7 @@ export default function Page() {
             <div className="flex items-start justify-between">
               <div className="md:max-w-[65%] whitespace-pre-line text-[3vw] md:text-[2vh] interbold leading-[3vw] md:leading-[2vh] text-black/90">today</div>
             </div>
-            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[12vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`today-${cycle}`} value={todayLabel} delay={4000} />}
             </div>
           </div>
@@ -641,7 +641,7 @@ export default function Page() {
                 last year
               </div>
             </div>
-            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[12vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`lastYear-${cycle}`} value={lastYearLabel} delay={4000} />}
             </div>
           </div>
@@ -666,7 +666,7 @@ export default function Page() {
               </div>
             </div>
 
-            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[12vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`record-${cycle}`} value={recordLabel} delay={4000} />}
             </div>
           </div>
