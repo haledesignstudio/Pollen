@@ -205,6 +205,16 @@ export default function Page() {
     currentProgressX: 0,
   });
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 767px)'); // Tailwind md breakpoint
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dataReady, setDataReady] = useState(false);
@@ -397,11 +407,22 @@ export default function Page() {
     return () => clearTimeout(t);
   }, [cycle, dataReady, overlayMounted]);
 
-  const lineConfig = {
-    current: { color: '#ffd200', strokeWidth: 15, circleRadius: 65, fontSize: 32 },
-    lastYear: { color: '#ff4a00', strokeWidth: 10, circleRadius: 40, fontSize: 20 },
-    record: { color: '#9ccfc9', strokeWidth: 7.5, circleRadius: 40, fontSize: 20 },
-  };
+  const lineConfig = useMemo(() => {
+    if (isMobile) {
+      return {
+        current: { color: '#ffd200', strokeWidth: 6, circleRadius: 34, fontSize: 16 },
+        lastYear: { color: '#ff4a00', strokeWidth: 3, circleRadius: 22, fontSize: 12 },
+        record: { color: '#9ccfc9', strokeWidth: 2, circleRadius: 22, fontSize: 12 },
+      };
+    }
+
+    return {
+      current: { color: '#ffd200', strokeWidth: 15, circleRadius: 65, fontSize: 32 },
+      lastYear: { color: '#ff4a00', strokeWidth: 10, circleRadius: 40, fontSize: 20 },
+      record: { color: '#9ccfc9', strokeWidth: 7.5, circleRadius: 40, fontSize: 20 },
+    };
+  }, [isMobile]);
+
 
   const formatBubble = (value: number) => {
     const millions = value / 1_000_000;
@@ -437,67 +458,72 @@ export default function Page() {
   }, [data, meta.currentProgressX]);
 
   const createCustomDot = (dataKey: 'current' | 'lastYear' | 'record') => {
-  const CustomDot = (props: any) => {
-    const { cx, cy, payload } = props;
-    const config = lineConfig[dataKey];
+    const CustomDot = (props: any) => {
+      const { cx, cy, payload } = props;
+      const config = lineConfig[dataKey];
 
-    const isLastCurrent = dataKey === 'current' && payload.x === meta.currentProgressX;
-    const isLastOther = (dataKey === 'lastYear' || dataKey === 'record') && payload.x === 100;
+      const isLastCurrent = dataKey === 'current' && payload.x === meta.currentProgressX;
+      const isLastOther = (dataKey === 'lastYear' || dataKey === 'record') && payload.x === 100;
 
-    if (!isLastCurrent && !isLastOther) return null;
+      if (!isLastCurrent && !isLastOther) return null;
 
-    const value = payload[dataKey];
-    if (value === null || value === 0) return null;
-    if (!dotsVisible) return null;
+      const value = payload[dataKey];
+      if (value === null || value === 0) return null;
+      if (!dotsVisible) return null;
 
-    const displayValue = formatBubble(value);
+      const displayValue = formatBubble(value);
 
-    return (
-      <g
-        className="dot-pop"
-        style={{
-          transformOrigin: `${cx}px ${cy}px`,
-          animationDuration: `${DOT_GROW_MS}ms`,
-        }}
-      >
-        <circle cx={cx} cy={cy} r={config.circleRadius} fill={config.color} />
-        <text
-          x={cx}
-          y={cy}
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fill="black"
-          fontSize={config.fontSize}
-          className="interblack"
+      return (
+        <g
+          className="dot-pop"
+          style={{
+            transformOrigin: `${cx}px ${cy}px`,
+            animationDuration: `${DOT_GROW_MS}ms`,
+          }}
         >
-          {displayValue}
-        </text>
-      </g>
-    );
-  };
+          <circle cx={cx} cy={cy} r={config.circleRadius} fill={config.color} />
+          <text
+            x={cx}
+            y={cy}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="black"
+            fontSize={config.fontSize}
+            className="interblack"
+          >
+            {displayValue}
+          </text>
+        </g>
+      );
+    };
 
-  CustomDot.displayName = `CustomDot(${dataKey})`;
-  return CustomDot;
-};
+    CustomDot.displayName = `CustomDot(${dataKey})`;
+    return CustomDot;
+  };
 
 
   const ChartLegend = () => (
-    <div className="absolute left-[2vh] top-[3vh] z-10 flex flex-col gap-[1.2vh] text-white">
-      <div className="flex items-center gap-[1.2vh]">
-        <span className="h-[0.9vh] w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.current.color }} />
-        <span className="text-[2vh] interbold leading-none">current month</span>
+    <div className="absolute left-[2vw] md:left-[2vh] top-[3vw] md:top-[3vh] z-10 flex flex-col md:gap-[1.2vh] text-white">
+      <div className="flex items-center gap-[2vw] md:gap-[1.2vh]">
+        <span className="h-[1.2vw] md:h-[0.9vh] w-[5vw] md:w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.current.color }} />
+        <span className="text-[3vw] md:text-[2vh] interbold leading-none">current month</span>
       </div>
 
-      <div className="flex items-center gap-[1.2vh]">
-        <span className="h-[0.9vh] w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.record.color }} />
-        <span className="text-[2vh] interbold leading-none">record month</span>
+      <div className="flex items-center gap-[2vw] md:gap-[1.2vh]">
+        <span className="h-[1.2vw] md:h-[0.9vh] w-[5vw] md:w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.record.color }} />
+        <span className="text-[3vw] md:text-[2vh] interbold leading-none">record month</span>
       </div>
 
-      <div className="flex items-center gap-[1.2vh]">
-        <span className="h-[0.9vh] w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.lastYear.color }} />
-        <span className="text-[2vh] interbold leading-none">last year</span>
+      <div className="flex items-center gap-[2vw] md:gap-[1.2vh]">
+        <span className="h-[1.2vw] md:h-[0.9vh] w-[5vw] md:w-[3.2vh] rounded-full" style={{ backgroundColor: lineConfig.lastYear.color }} />
+        <span className="text-[3vw] md:text-[2vh] interbold leading-none">last year</span>
       </div>
     </div>
+  );
+
+  const chartMargin = useMemo(
+    () => (isMobile ? { top: 50, right: 45, left: 5, bottom: 12 } : { top: 80, right: 80, left: 20, bottom: 20 }),
+    [isMobile]
   );
 
   return (
@@ -509,11 +535,11 @@ export default function Page() {
           willChange: 'transform',
         }}
       >
-        <div className="relative bg-black h-[64vh] rounded-[1.5vh] text-white pt-[2vh] overflow-hidden">
+        <div className="relative bg-black h-[50vh] md:h-[64vh] rounded-[2vw] md:rounded-[1.5vh] text-white pt-[2vh] md:pt-[2vh] overflow-hidden">
           <ChartLegend />
 
           {(loading || error) && (
-            <div className="absolute right-[3vh] top-[3vh] z-20 text-[1.6vh] interbold text-white/70">
+            <div className="absolute right-[3vh] md:right-[3vh] top-[3vh md:top-[3vh] z-20 text-[1.6vh] md:text-[1.6vh] interbold text-white/70">
               {loading ? 'Loading…' : `Error: ${error}`}
             </div>
           )}
@@ -521,7 +547,7 @@ export default function Page() {
           <div style={{ opacity: chartVisible ? 1 : 0, width: '100%', height: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               {showChart && (
-                <LineChart key={`chart-${cycle}`} data={data} margin={{ top: 80, right: 80, left: 20, bottom: 20 }}>
+                <LineChart key={`chart-${cycle}`} data={data} margin={chartMargin}>
                   <XAxis dataKey="x" hide={true} />
                   <YAxis hide={true} domain={[0, yAxisMax]} />
 
@@ -554,7 +580,7 @@ export default function Page() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     dot={createCustomDot('lastYear')}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: isMobile ? 3 : 6 }}
                     isAnimationActive={true}
                     animationDuration={LINE_ANIM_MS}
                     animationBegin={LINE_ANIM_DELAY_MS}
@@ -569,7 +595,7 @@ export default function Page() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     dot={createCustomDot('record')}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: isMobile ? 3 : 6 }}
                     isAnimationActive={true}
                     animationDuration={LINE_ANIM_MS}
                     animationBegin={LINE_ANIM_DELAY_MS}
@@ -584,7 +610,7 @@ export default function Page() {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     dot={createCustomDot('current')}
-                    activeDot={{ r: 6 }}
+                    activeDot={{ r: isMobile ? 3 : 6 }}
                     connectNulls={false}
                     isAnimationActive={true}
                     animationDuration={LINE_ANIM_MS}
@@ -597,50 +623,50 @@ export default function Page() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 w-full space-x-[2vh] pt-[2vh]">
-          <div className="relative flex h-[30vh] flex-col overflow-hidden rounded-[1.5vh] px-[2vh] py-[3vh] bg-[#ffd200]">
+        <div className="grid grid-cols-2 md:grid-cols-3 w-full md:space-x-[2vh] pt-[2vh] md:pt-[2vh]">
+          <div className="relative col-span-2 md:col-span-1 flex h-[18.5vh] md:h-[30vh] flex-col overflow-hidden rounded-[2vw] md:rounded-[1.5vh] px-[2vw] md:px-[2vh] py-[3vw] md:py-[3vh] bg-[#ffd200]">
             <div className="flex items-start justify-between">
-              <div className="max-w-[65%] whitespace-pre-line text-[2vh] interbold leading-[2vh] text-black/90">today</div>
+              <div className="md:max-w-[65%] whitespace-pre-line text-[3vw] md:text-[2vh] interbold leading-[3vw] md:leading-[2vh] text-black/90">today</div>
             </div>
-            <div className="mt-auto text-[17vh] leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`today-${cycle}`} value={todayLabel} delay={4000} />}
             </div>
           </div>
 
-          <div className="relative flex h-[30vh] flex-col overflow-hidden rounded-[1.5vh] px-[2vh] py-[3vh] bg-[#ff4a00]">
+          <div className="relative mr-[1vh] md:mr-[0vh] mt-[2vh] md:mt-[0vh] flex h-[23.5vh] md:h-[30vh] flex-col overflow-hidden rounded-[2vw] md:rounded-[1.5vh] px-[2vw] md:px-[2vh] py-[3vw] md:py-[3vh] bg-[#ff4a00]">
             <div className="flex items-start justify-between">
-              <div className="max-w-[65%] whitespace-pre-line text-[2vh] interbold leading-[2vh] text-black/90">
+              <div className="md:max-w-[65%] whitespace-pre-line text-[3vw] md:text-[2vh] interbold leading-[3vw] md:leading-[2vh] text-black/90">
                 today, but
                 <br />
                 last year
               </div>
             </div>
-            <div className="mt-auto text-[17vh] leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`lastYear-${cycle}`} value={lastYearLabel} delay={4000} />}
             </div>
           </div>
 
-          <div className="relative flex h-[30vh] flex-col overflow-hidden rounded-[1.5vh] px-[2vh] py-[3vh] bg-[#9ccfc9]">
+          <div className="relative ml-[1vh] md:ml-[0vh] mt-[2vh] md:mt-[0vh] flex h-[23.5vh] md:h-[30vh] flex-col overflow-hidden rounded-[2vw] md:rounded-[1.5vh] px-[2vw] md:px-[2vh] py-[3vw] md:py-[3vh] bg-[#9ccfc9]">
 
             <div className="flex items-start justify-between">
-              <div className="max-w-[65%] whitespace-pre-line text-[2vh] interbold leading-[2vh] text-black/90">
+              <div className="md:max-w-[65%] whitespace-pre-line text-[3vw] md:text-[2vh] interbold leading-[3vw] md:leading-[2vh] text-black/90">
                 today, but
                 <br />
                 our record month
               </div>
-              <div className="text-right flex flex-col justify-end">
-                <div className="text-[4vh] leading-none min-h-[4vh] flex justify-end">
+              <div className="hidden md:block text-right flex flex-col justify-end">
+                <div className="md:text-[4vh] leading-none md:min-h-[4vh] flex justify-end">
                   {cardsReady ? <SplitFlapValue key={`recordDiff-${cycle}`} value={recordDiffLabel} delay={4000} /> : <span className="opacity-0">0.0M</span>}
                 </div>
 
-                <div className="flex items-center justify-end gap-[0.5vh] text-[2vh] interbold mt-[0.3vh]">
+                <div className="flex items-center justify-end md:gap-[0.5vh] md:text-[2vh] interbold md:mt-[0.3vh]">
                   <span>⟶</span>
                   <span>to goal</span>
                 </div>
               </div>
             </div>
 
-            <div className="mt-auto text-[17vh] leading-[14vh] text-[#1a1a1a]">
+            <div className="mt-auto text-[15vw] md:text-[17vh] leading-[12vw] md:leading-[14vh] text-[#1a1a1a]">
               {cardsReady && <SplitFlapValue key={`record-${cycle}`} value={recordLabel} delay={4000} />}
             </div>
           </div>
