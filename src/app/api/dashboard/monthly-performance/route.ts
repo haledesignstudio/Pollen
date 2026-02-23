@@ -28,7 +28,6 @@ export async function GET() {
     const raw = await res.text().catch(() => "");
 
     if (!res.ok) {
-      // This will print in your terminal (npm run dev), not in the browser
       console.error("UPSTREAM ERROR", {
         status: res.status,
         statusText: res.statusText,
@@ -46,7 +45,6 @@ export async function GET() {
 
     }
 
-    // If upstream returns JSON but content-type is weird, still handle it:
     const data = contentType.includes("application/json") ? JSON.parse(raw) : raw;
     return NextResponse.json(data);
   } catch (err: any) {

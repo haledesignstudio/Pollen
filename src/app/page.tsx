@@ -299,10 +299,10 @@ export default function Page() {
   useEffect(() => {
     if (!dataReady) return;
 
-    const HOURLY_MS = 60 * 60 * 1000;
+    const TEN_MINUTES_MS = 10 * 60 * 1000;
     const id = window.setInterval(() => {
       loadData();
-    }, HOURLY_MS);
+    }, TEN_MINUTES_MS);
 
     return () => window.clearInterval(id);
   }, [dataReady]);
