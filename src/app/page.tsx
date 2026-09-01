@@ -197,6 +197,59 @@ function SplitFlapValue({ value, delay = 0 }: { value: string; delay?: number })
 
 
 export default function Page() {
+
+
+  {/* Remove after record month*/ }
+  const [showAnimation, setShowAnimation] = useState(false);
+  const [animationVisible, setAnimationVisible] = useState(false);
+
+  useEffect(() => {
+    const PLAY_EVERY = 30 * 60 * 1000; // 30 minutes
+    const PLAY_FOR = 15 * 1000;        // 15 seconds
+    const FADE_TIME = 1000;             // 1 second fade
+
+    let fadeTimeout: ReturnType<typeof setTimeout>;
+    let hideTimeout: ReturnType<typeof setTimeout>;
+
+    const playAnimation = () => {
+      // Mount the video
+      setShowAnimation(true);
+
+      // Fade it in
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnimationVisible(true);
+        });
+      });
+
+      // Start fading out before the 15 seconds are finished
+      fadeTimeout = setTimeout(() => {
+        setAnimationVisible(false);
+      }, PLAY_FOR - FADE_TIME);
+
+      // Remove it completely after fade-out
+      hideTimeout = setTimeout(() => {
+        setShowAnimation(false);
+      }, PLAY_FOR);
+    };
+
+    const interval = setInterval(playAnimation, PLAY_EVERY);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(fadeTimeout);
+      clearTimeout(hideTimeout);
+    };
+  }, []);
+
+
+
+
+
+
+
+
+
   const [data, setData] = useState<ChartRow[]>([]);
   const [meta, setMeta] = useState<TransformMeta>({
     currentMonthLen: 31,
@@ -682,6 +735,49 @@ export default function Page() {
           <video className="h-full w-full object-contain p-[20%]" autoPlay loop muted playsInline preload="auto" src="/loading-overlay.mp4" />
         </div>
       )}
+
+
+
+      {/* Remove to eliminate record month */}
+
+      {showAnimation && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            width: "100vw",
+            height: "100vh",
+            zIndex: 99999,
+            backgroundColor: "#000",
+            overflow: "hidden",
+
+            // Fade effect
+            opacity: animationVisible ? 1 : 0,
+            transition: "opacity 1000ms ease-in-out",
+            pointerEvents: animationVisible ? "auto" : "none",
+          }}
+        >
+          <video
+            src="/Record_Animation.mp4"
+            autoPlay
+            muted
+            playsInline
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+            }}
+          />
+        </div>
+      )}
+
+
+
+
+
+
+
+
     </main>
   );
 }
