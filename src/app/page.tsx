@@ -203,49 +203,6 @@ export default function Page() {
   const [showAnimation, setShowAnimation] = useState(false);
   const [animationVisible, setAnimationVisible] = useState(false);
 
-  useEffect(() => {
-    const PLAY_EVERY = 30 * 60 * 1000; // 30 minutes
-    const PLAY_FOR = 15 * 1000;        // 15 seconds
-    const FADE_TIME = 1000;             // 1 second fade
-
-    let fadeTimeout: ReturnType<typeof setTimeout>;
-    let hideTimeout: ReturnType<typeof setTimeout>;
-
-    const playAnimation = () => {
-      // Mount the video
-      setShowAnimation(true);
-
-      // Fade it in
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setAnimationVisible(true);
-        });
-      });
-
-      // Start fading out before the 15 seconds are finished
-      fadeTimeout = setTimeout(() => {
-        setAnimationVisible(false);
-      }, PLAY_FOR - FADE_TIME);
-
-      // Remove it completely after fade-out
-      hideTimeout = setTimeout(() => {
-        setShowAnimation(false);
-      }, PLAY_FOR);
-    };
-
-    const interval = setInterval(playAnimation, PLAY_EVERY);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(fadeTimeout);
-      clearTimeout(hideTimeout);
-    };
-  }, []);
-
-
-
-
-
 
 
 
@@ -509,6 +466,82 @@ export default function Page() {
       recordDiffLabel: recordDifference ? formatBubble(recordDifference) : '0M',
     };
   }, [data, meta.currentProgressX]);
+
+
+
+  {/* Remove after record month*/ }
+  const recordBroken = useMemo(() => {
+    if (!data.length) return false;
+
+    // Current month's cumulative total as of today
+    const todayPoint =
+      data.find((d) => d.x === meta.currentProgressX) ?? data[0];
+
+    const currentMonthTotal = todayPoint?.current ?? 0;
+
+    // Final end-of-month total of the standing record month
+    const recordMonthEndTotal =
+      data.find((d) => d.x === 100)?.record ?? 0;
+
+    return (
+      currentMonthTotal > 0 &&
+      recordMonthEndTotal > 0 &&
+      currentMonthTotal > recordMonthEndTotal
+    );
+  }, [data, meta.currentProgressX]);
+
+  useEffect(() => {
+    if (!recordBroken) {
+      setShowAnimation(false);
+      setAnimationVisible(false);
+      return;
+    }
+
+    const PLAY_EVERY = 30 * 60 * 1000; // every 30 minutes
+    const PLAY_FOR = 15 * 1000;        // 15 seconds total
+    const FADE_TIME = 1000;             // 1 second fade
+
+    let fadeTimeout: ReturnType<typeof setTimeout>;
+    let hideTimeout: ReturnType<typeof setTimeout>;
+
+    const playAnimation = () => {
+      setShowAnimation(true);
+      setAnimationVisible(false);
+
+      // Fade in after mounting
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnimationVisible(true);
+        });
+      });
+
+      // Fade out before the 15 seconds ends
+      fadeTimeout = setTimeout(() => {
+        setAnimationVisible(false);
+      }, PLAY_FOR - FADE_TIME);
+
+      // Remove completely
+      hideTimeout = setTimeout(() => {
+        setShowAnimation(false);
+      }, PLAY_FOR);
+    };
+
+    // Play immediately once the record condition is true
+    playAnimation();
+
+    // Then repeat every 30 minutes
+    const interval = window.setInterval(playAnimation, PLAY_EVERY);
+
+    return () => {
+      window.clearInterval(interval);
+      clearTimeout(fadeTimeout);
+      clearTimeout(hideTimeout);
+    };
+  }, [recordBroken]);
+
+
+
+
 
   const createCustomDot = (dataKey: 'current' | 'lastYear' | 'record') => {
     const CustomDot = (props: any) => {
