@@ -791,7 +791,7 @@ export default function Page() {
           }}
         >
           <video
-            src="/Record_Animation.mp4"
+            src="/Record_Animation_22_10.mp4"
             autoPlay
             muted
             playsInline
