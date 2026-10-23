@@ -77,6 +77,7 @@ type TransformMeta = {
   lastYearToday: number;
   recordToday: number;
   recordFinal: number;
+  currentIsRecord: boolean;
 };
 
 function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta: TransformMeta } {
@@ -91,6 +92,7 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
       lastYearToday: 0,
       recordToday: 0,
       recordFinal: 0,
+      currentIsRecord: false,
     },
   };
   if (!rows?.length) return empty;
@@ -148,9 +150,20 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
     return arr;
   };
 
-  const currentCum = cumulative(buildDaily('current_month_total_amount_released', currentMonthLen));
+  const currentDaily = buildDaily('current_month_total_amount_released', currentMonthLen);
+  const recordDaily = buildDaily('record_month_total_amount_released', recordMonthLen);
+  const currentCum = cumulative(currentDaily);
   const lastYearCum = cumulative(buildDaily('last_year_current_month_total_amount_released', currentMonthLen));
-  const recordCum = cumulative(buildDaily('record_month_total_amount_released', recordMonthLen));
+  const recordCum = cumulative(recordDaily);
+
+  // Once the current month overtakes the record, the API starts returning the current
+  // month as the record month. Detect that (identical days up to today, nothing after)
+  // so the record still counts as broken. Stopgap until the API sends the previous record.
+  const currentIsRecord =
+    todayDay > 0 &&
+    currentDaily.slice(0, todayDay).some((v) => v > 0) &&
+    currentDaily.slice(0, todayDay).every((v, i) => v === recordDaily[i]) &&
+    recordDaily.slice(todayDay).every((v) => v === 0);
   const currentProgress = currentMonthLen > 0 ? todayDay / currentMonthLen : 0;
   const currentProgressX = Math.round(currentProgress * 100);
 
@@ -187,6 +200,7 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
       lastYearToday,
       recordToday,
       recordFinal,
+      currentIsRecord,
     },
   };
 }
@@ -247,6 +261,7 @@ export default function Page() {
     lastYearToday: 0,
     recordToday: 0,
     recordFinal: 0,
+    currentIsRecord: false,
   });
 
   const [isMobile, setIsMobile] = useState(false);
@@ -513,6 +528,8 @@ export default function Page() {
 
     // Final end-of-month total of the standing record month
     const recordMonthEndTotal = meta.recordFinal;
+
+    if (meta.currentIsRecord) return true;
 
     return (
       currentMonthTotal > 0 &&
