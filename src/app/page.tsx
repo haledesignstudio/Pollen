@@ -496,9 +496,16 @@ export default function Page() {
     return `${round(millions)}M`;
   };
 
-  const { yAxisMax, todayLabel, lastYearLabel, recordLabel, recordDiffLabel } = useMemo(() => {
+  const { yAxisMax, todayLabel, lastYearLabel, recordLabel, recordDiffLabel, aboveRecord } = useMemo(() => {
     if (!data.length) {
-      return { yAxisMax: 0, todayLabel: '0M', lastYearLabel: '0M', recordLabel: '0M', recordDiffLabel: '0M' };
+      return {
+        yAxisMax: 0,
+        todayLabel: '0M',
+        lastYearLabel: '0M',
+        recordLabel: '0M',
+        recordDiffLabel: '0M',
+        aboveRecord: false,
+      };
     }
 
     const maxValue = Math.max(...data.flatMap((d) => [d.current ?? 0, d.lastYear ?? 0, d.record ?? 0]));
@@ -506,14 +513,27 @@ export default function Page() {
     const todayValue = meta.currentToday;
     const lastYearSameProgress = meta.lastYearToday;
     const recordSameProgress = meta.recordToday;
-    const recordDifference = Math.max(meta.recordFinal - recordSameProgress, 0);
+
+    // Goal = the record month's final total. Show what the current month still needs,
+    // or how far above the record it is once beaten.
+    const goalGap = meta.recordFinal - todayValue;
+    const aboveRecord = meta.currentIsRecord || (todayValue > 0 && meta.recordFinal > 0 && goalGap <= 0);
+    let recordDiffLabel = '0M';
+    if (aboveRecord) {
+      const margin = Math.max(-goalGap, 0);
+      const nearest = formatBubble(margin);
+      recordDiffLabel = `+${nearest === '0M' ? formatBubble(margin, true) : nearest}`;
+    } else if (goalGap > 0) {
+      recordDiffLabel = formatBubble(goalGap, true);
+    }
 
     return {
       yAxisMax,
       todayLabel: todayValue ? formatBubble(todayValue) : '0M',
       lastYearLabel: lastYearSameProgress ? formatBubble(lastYearSameProgress) : '0M',
       recordLabel: recordSameProgress ? formatBubble(recordSameProgress) : '0M',
-      recordDiffLabel: recordDifference ? formatBubble(recordDifference, true) : '0M',
+      recordDiffLabel,
+      aboveRecord,
     };
   }, [data, meta]);
 
@@ -795,7 +815,7 @@ export default function Page() {
 
                 <div className="flex items-center justify-end md:gap-[0.5vh] md:text-[2vh] interbold md:mt-[0.3vh]">
                   <span>⟶</span>
-                  <span>to goal</span>
+                  <span>{aboveRecord ? 'above record' : 'to goal'}</span>
                 </div>
               </div>
             </div>
