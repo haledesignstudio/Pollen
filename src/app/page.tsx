@@ -72,12 +72,26 @@ type TransformMeta = {
   recordMonthLen: number;
   todayDay: number;
   currentProgressX: number;
+  // Exact cumulative totals as of today (not snapped to the 0-100 chart grid)
+  currentToday: number;
+  lastYearToday: number;
+  recordToday: number;
+  recordFinal: number;
 };
 
 function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta: TransformMeta } {
   const empty = {
     data: [{ x: 0, current: 0, lastYear: 0, record: 0 }],
-    meta: { currentMonthLen: 31, recordMonthLen: 31, todayDay: 0, currentProgressX: 0 },
+    meta: {
+      currentMonthLen: 31,
+      recordMonthLen: 31,
+      todayDay: 0,
+      currentProgressX: 0,
+      currentToday: 0,
+      lastYearToday: 0,
+      recordToday: 0,
+      recordFinal: 0,
+    },
   };
   if (!rows?.length) return empty;
 
@@ -139,6 +153,12 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
   const recordCum = cumulative(buildDaily('record_month_total_amount_released', recordMonthLen));
   const currentProgress = currentMonthLen > 0 ? todayDay / currentMonthLen : 0;
   const currentProgressX = Math.round(currentProgress * 100);
+
+  const currentToday = cumAtProgress(currentCum, currentMonthLen, currentProgress);
+  const lastYearToday = cumAtProgress(lastYearCum, currentMonthLen, currentProgress);
+  const recordToday = cumAtProgress(recordCum, recordMonthLen, currentProgress);
+  const recordFinal = cumAtProgress(recordCum, recordMonthLen, 1);
+
   const data: ChartRow[] = [];
   for (let x = 0; x <= 100; x++) {
     const p = x / 100;
@@ -149,7 +169,8 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
 
     data.push({
       x,
-      current: x > currentProgressX ? null : currentVal,
+      // End the current line on today's exact total so its bubble matches the cards
+      current: x > currentProgressX ? null : x === currentProgressX ? currentToday : currentVal,
       lastYear: lastYearVal,
       record: recordVal,
     });
@@ -157,7 +178,16 @@ function transformApiToNormalizedChart(rows: ApiRow[]): { data: ChartRow[]; meta
 
   return {
     data,
-    meta: { currentMonthLen, recordMonthLen, todayDay, currentProgressX },
+    meta: {
+      currentMonthLen,
+      recordMonthLen,
+      todayDay,
+      currentProgressX,
+      currentToday,
+      lastYearToday,
+      recordToday,
+      recordFinal,
+    },
   };
 }
 
@@ -213,6 +243,10 @@ export default function Page() {
     recordMonthLen: 31,
     todayDay: 0,
     currentProgressX: 0,
+    currentToday: 0,
+    lastYearToday: 0,
+    recordToday: 0,
+    recordFinal: 0,
   });
 
   const [isMobile, setIsMobile] = useState(false);
@@ -434,14 +468,17 @@ export default function Page() {
   }, [isMobile]);
 
 
-  const formatBubble = (value: number) => {
+  // Rounds to nearest so the same total reads the same on the chart and the cards.
+  // roundUp is only for amounts still to go, so a small remainder never shows as 0M.
+  const formatBubble = (value: number, roundUp = false) => {
     const millions = value / 1_000_000;
+    const round = roundUp ? Math.ceil : Math.round;
     if (millions < 10) {
-      const rounded = Math.ceil(millions * 10) / 10;
+      const rounded = round(millions * 10) / 10;
       const text = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
       return `${text}M`;
     }
-    return `${Math.ceil(millions)}M`;
+    return `${round(millions)}M`;
   };
 
   const { yAxisMax, todayLabel, lastYearLabel, recordLabel, recordDiffLabel } = useMemo(() => {
@@ -451,21 +488,19 @@ export default function Page() {
 
     const maxValue = Math.max(...data.flatMap((d) => [d.current ?? 0, d.lastYear ?? 0, d.record ?? 0]));
     const yAxisMax = maxValue * 1.1;
-    const todayPoint = data.find((d) => d.x === meta.currentProgressX) ?? data[0];
-    const todayValue = todayPoint?.current ?? 0;
-    const lastYearSameProgress = todayPoint?.lastYear ?? 0;
-    const recordSameProgress = todayPoint?.record ?? 0;
-    const finalRecord = data.find((d) => d.x === 100)?.record ?? 0;
-    const recordDifference = Math.max(finalRecord - recordSameProgress, 0);
+    const todayValue = meta.currentToday;
+    const lastYearSameProgress = meta.lastYearToday;
+    const recordSameProgress = meta.recordToday;
+    const recordDifference = Math.max(meta.recordFinal - recordSameProgress, 0);
 
     return {
       yAxisMax,
       todayLabel: todayValue ? formatBubble(todayValue) : '0M',
       lastYearLabel: lastYearSameProgress ? formatBubble(lastYearSameProgress) : '0M',
       recordLabel: recordSameProgress ? formatBubble(recordSameProgress) : '0M',
-      recordDiffLabel: recordDifference ? formatBubble(recordDifference) : '0M',
+      recordDiffLabel: recordDifference ? formatBubble(recordDifference, true) : '0M',
     };
-  }, [data, meta.currentProgressX]);
+  }, [data, meta]);
 
 
 
@@ -474,21 +509,17 @@ export default function Page() {
     if (!data.length) return false;
 
     // Current month's cumulative total as of today
-    const todayPoint =
-      data.find((d) => d.x === meta.currentProgressX) ?? data[0];
-
-    const currentMonthTotal = todayPoint?.current ?? 0;
+    const currentMonthTotal = meta.currentToday;
 
     // Final end-of-month total of the standing record month
-    const recordMonthEndTotal =
-      data.find((d) => d.x === 100)?.record ?? 0;
+    const recordMonthEndTotal = meta.recordFinal;
 
     return (
       currentMonthTotal > 0 &&
       recordMonthEndTotal > 0 &&
       currentMonthTotal > recordMonthEndTotal
     );
-  }, [data, meta.currentProgressX]);
+  }, [data, meta]);
 
   useEffect(() => {
     if (!recordBroken) {
